@@ -2,6 +2,8 @@ import math
 from abc import ABC, abstractmethod
 
 import torch
+from torch.nn import DataParallel as dp
+from torch.nn.parallel import DistributedDataParallel as ddp
 
 
 class MuZeroNetwork:
@@ -95,7 +97,7 @@ class MuZeroFullyConnectedNetwork(AbstractNetwork):
         self.action_space_size = action_space_size
         self.full_support_size = 2 * support_size + 1
 
-        self.representation_network = torch.nn.DataParallel(
+        self.representation_network = ddp(
             mlp(
                 observation_shape[0]
                 * observation_shape[1]
@@ -107,21 +109,21 @@ class MuZeroFullyConnectedNetwork(AbstractNetwork):
             )
         )
 
-        self.dynamics_encoded_state_network = torch.nn.DataParallel(
+        self.dynamics_encoded_state_network = ddp(
             mlp(
                 encoding_size + self.action_space_size,
                 fc_dynamics_layers,
                 encoding_size,
             )
         )
-        self.dynamics_reward_network = torch.nn.DataParallel(
+        self.dynamics_reward_network = ddp(
             mlp(encoding_size, fc_reward_layers, self.full_support_size)
         )
 
-        self.prediction_policy_network = torch.nn.DataParallel(
+        self.prediction_policy_network = ddp(
             mlp(encoding_size, fc_policy_layers, self.action_space_size)
         )
-        self.prediction_value_network = torch.nn.DataParallel(
+        self.prediction_value_network = ddp(
             mlp(encoding_size, fc_value_layers, self.full_support_size)
         )
 
