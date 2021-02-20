@@ -785,63 +785,64 @@ if __name__ == "__main__":
           # Note: each process has its own identical copy of the model
           #  Even though each model is created independently, they're also
           #  created in the same way.
-          net = torchvision.models.alexnet(num_classes=10).to(device).train()
-
-          loss_fn = torch.nn.CrossEntropyLoss()
-          optimizer = torch.optim.Adam(net.parameters())
-
-
-          ## Trains
-          train_start = time.time()
-          for epoch in range(flags['num_epochs']):
-            para_train_loader = pl.ParallelLoader(train_loader, [device]).per_device_loader(device)
-            for batch_num, batch in enumerate(para_train_loader):
-              data, targets = batch 
-
-              # Acquires the network's best guesses at each class
-              output = net(data)
-
-              # Computes loss
-              loss = loss_fn(output, targets)
-
-              # Updates model
-              optimizer.zero_grad()
-              loss.backward()
-
-              # Note: optimizer_step uses the implicit Cloud TPU context to
-              #  coordinate and synchronize gradient updates across processes.
-              #  This means that each process's network has the same weights after
-              #  this is called.
-              # Warning: this coordination requires the actions performed in each 
-              #  process are the same. In more technical terms, the graph that
-              #  PyTorch/XLA generates must be the same across processes. 
-              xm.optimizer_step(optimizer)  # Note: barrier=True not needed when using ParallelLoader 
-
-          elapsed_train_time = time.time() - train_start
-          print("Process", index, "finished training. Train time was:", elapsed_train_time) 
-
-
-          ## Evaluation
-          # Sets net to eval and no grad context 
-          net.eval()
-          eval_start = time.time()
-          with torch.no_grad():
-            num_correct = 0
-            total_guesses = 0
-
-            para_train_loader = pl.ParallelLoader(test_loader, [device]).per_device_loader(device)
-            for batch_num, batch in enumerate(para_train_loader):
-              data, targets = batch
-
-              # Acquires the network's best guesses at each class
-              output = net(data)
-              best_guesses = torch.argmax(output, 1)
-
-              # Updates running statistics
-              num_correct += torch.eq(targets, best_guesses).sum().item()
-              total_guesses += flags['batch_size']
           
-          elapsed_eval_time = time.time() - eval_start
-          print("Process", index, "finished evaluation. Evaluation time was:", elapsed_eval_time)
-          print("Process", index, "guessed", num_correct, "of", total_guesses, "correctly for", num_correct/total_guesses * 100, "% accuracy.")
+          # net = torchvision.models.alexnet(num_classes=10).to(device).train()
+
+          # loss_fn = torch.nn.CrossEntropyLoss()
+          # optimizer = torch.optim.Adam(net.parameters())
+
+
+          # ## Trains
+          # train_start = time.time()
+          # for epoch in range(flags['num_epochs']):
+          #   para_train_loader = pl.ParallelLoader(train_loader, [device]).per_device_loader(device)
+          #   for batch_num, batch in enumerate(para_train_loader):
+          #     data, targets = batch 
+
+          #     # Acquires the network's best guesses at each class
+          #     output = net(data)
+
+          #     # Computes loss
+          #     loss = loss_fn(output, targets)
+
+          #     # Updates model
+          #     optimizer.zero_grad()
+          #     loss.backward()
+
+          #     # Note: optimizer_step uses the implicit Cloud TPU context to
+          #     #  coordinate and synchronize gradient updates across processes.
+          #     #  This means that each process's network has the same weights after
+          #     #  this is called.
+          #     # Warning: this coordination requires the actions performed in each 
+          #     #  process are the same. In more technical terms, the graph that
+          #     #  PyTorch/XLA generates must be the same across processes. 
+          #     xm.optimizer_step(optimizer)  # Note: barrier=True not needed when using ParallelLoader 
+
+          # elapsed_train_time = time.time() - train_start
+          # print("Process", index, "finished training. Train time was:", elapsed_train_time) 
+
+
+          # ## Evaluation
+          # # Sets net to eval and no grad context 
+          # net.eval()
+          # eval_start = time.time()
+          # with torch.no_grad():
+          #   num_correct = 0
+          #   total_guesses = 0
+
+          #   para_train_loader = pl.ParallelLoader(test_loader, [device]).per_device_loader(device)
+          #   for batch_num, batch in enumerate(para_train_loader):
+          #     data, targets = batch
+
+          #     # Acquires the network's best guesses at each class
+          #     output = net(data)
+          #     best_guesses = torch.argmax(output, 1)
+
+          #     # Updates running statistics
+          #     num_correct += torch.eq(targets, best_guesses).sum().item()
+          #     total_guesses += flags['batch_size']
+          
+          # elapsed_eval_time = time.time() - eval_start
+          # print("Process", index, "finished evaluation. Evaluation time was:", elapsed_eval_time)
+          # print("Process", index, "guessed", num_correct, "of", total_guesses, "correctly for", num_correct/total_guesses * 100, "% accuracy.")
             
